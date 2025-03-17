@@ -1,1 +1,1 @@
-# find a best width and height for your home
+# find a best width and length for your home
