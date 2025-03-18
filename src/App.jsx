@@ -286,14 +286,14 @@ const App = () => {
               setSelectedConditions(Array(conditions.length).fill(true))
             }
           >
-            Select All
+            සියලු නීති බලන්න
           </button>
           <button
             onClick={() =>
               setSelectedConditions(Array(conditions.length).fill(false))
             }
           >
-            Unselect All
+            නීති සියල්ල ඉවත්කරන්න
           </button>
         </div>
         <div
