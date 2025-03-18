@@ -53,15 +53,40 @@ const isExcluded = (mods) => {
 const conditions = [
   { name: "අය > 6", check: (mods) => mods.aya > 6 },
   { name: "වැය < 5", check: (mods) => mods.weya < 5 },
-  { name: "යෝනි ඇතුලත්ව [1,3,5,7]", check: (mods) => [1, 3, 5, 7].includes(mods.yoni) },
-  { name: "නැකත ඇතුලත්ව [2,5,7,9,11,14,16,18,20,23,25,27]", check: (mods) => [2, 5, 7, 9, 11, 14, 16, 18, 20, 23, 25, 27].includes(mods.nekatha) },
-  { name: "දවස ඇතුලත්ව [2,3,6]", check: (mods) => [2, 3, 6].includes(mods.dawasa) },
+  {
+    name: "යෝනි ඇතුලත්ව [1,3,5,7]",
+    check: (mods) => [1, 3, 5, 7].includes(mods.yoni),
+  },
+  {
+    name: "නැකත ඇතුලත්ව [2,5,7,9,11,14,16,18,20,23,25,27]",
+    check: (mods) =>
+      [2, 5, 7, 9, 11, 14, 16, 18, 20, 23, 25, 27].includes(mods.nekatha),
+  },
+  {
+    name: "දවස ඇතුලත්ව [2,3,6]",
+    check: (mods) => [2, 3, 6].includes(mods.dawasa),
+  },
   { name: "අයුෂ > 50", check: (mods) => mods.ayusha > 50 },
-  { name: "අංශක ඇතුලත්ව [1,3,5,6,8]", check: (mods) => [1, 3, 5, 6, 8].includes(mods.anshaka) },
-  { name: "රාශිය ඇතුලත්ව [2,3,5,9,11]", check: (mods) => [2, 3, 5, 9, 11].includes(mods.rashiya) },
-  { name: "තිථිය හැර [5,10,15,20,25,30]", check: (mods) => ![5, 10, 15, 20, 25, 30].includes(mods.thithiya) },
-  { name: "වංශය ඇතුලත්ව [1,2,3]", check: (mods) => [1, 2, 3].includes(mods.wanshaya) },
-  { name: "දෙවතා ඇතුලත්ව [1,2]", check: (mods) => [1, 2].includes(mods.dewatha) },
+  {
+    name: "අංශක ඇතුලත්ව [1,3,5,6,8]",
+    check: (mods) => [1, 3, 5, 6, 8].includes(mods.anshaka),
+  },
+  {
+    name: "රාශිය ඇතුලත්ව [2,3,5,9,11]",
+    check: (mods) => [2, 3, 5, 9, 11].includes(mods.rashiya),
+  },
+  {
+    name: "තිථිය හැර [5,10,15,20,25,30]",
+    check: (mods) => ![5, 10, 15, 20, 25, 30].includes(mods.thithiya),
+  },
+  {
+    name: "වංශය ඇතුලත්ව [1,2,3]",
+    check: (mods) => [1, 2, 3].includes(mods.wanshaya),
+  },
+  {
+    name: "දෙවතා ඇතුලත්ව [1,2]",
+    check: (mods) => [1, 2].includes(mods.dewatha),
+  },
 ];
 
 const App = () => {
@@ -71,7 +96,9 @@ const App = () => {
   const [endX, setEndX] = useState(500);
   const [startY, setStartY] = useState(281);
   const [endY, setEndY] = useState(391);
-  const [selectedConditions, setSelectedConditions] = useState(new Array(conditions.length).fill(true));
+  const [selectedConditions, setSelectedConditions] = useState(
+    new Array(conditions.length).fill(true)
+  );
   const [method, setMethod] = useState(0); // 0: Auto, 1: Manual
   const [dimensions, setDimensions] = useState({ x: 0, y: 0 }); // x: length, y: width
 
@@ -84,7 +111,8 @@ const App = () => {
         .filter((_, index) => selectedConditions[index])
         .map((c) => c.check);
       if (
-        (selectedChecks.length === 0 || selectedChecks.every((check) => check(mods))) &&
+        (selectedChecks.length === 0 ||
+          selectedChecks.every((check) => check(mods))) &&
         !isExcluded(mods)
       ) {
         return {
@@ -106,7 +134,8 @@ const App = () => {
       return null;
     };
 
-    if (method === 0) { // Auto Mode
+    if (method === 0) {
+      // Auto Mode
       const tempResults = [];
       const xOdds = generateOddNumbers(startX, endX);
       const yOdds = generateOddNumbers(startY, endY);
@@ -117,7 +146,8 @@ const App = () => {
         });
       });
       setResults(tempResults);
-    } else { // Manual Mode
+    } else {
+      // Manual Mode
       if (dimensions.x > 0 && dimensions.y > 0) {
         const result = mul(dimensions.x, dimensions.y);
         setResults(result ? [result] : []);
@@ -132,7 +162,14 @@ const App = () => {
       <h1>නිවාස සදහා සුදුසු දිග සහ පළල 🏠</h1>
 
       {/* Mode Selection */}
-      <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <label>
           <input
             type="radio"
@@ -213,9 +250,7 @@ const App = () => {
               value={dimensions.x}
               onChange={(e) => {
                 const value = parseInt(e.target.value, 10);
-                if (!isNaN(value)) {
-                  setDimensions((prev) => ({ ...prev, x: value }));
-                }
+                setDimensions((prev) => ({ ...prev, x: value }));
               }}
               style={{ marginLeft: "10px", width: "100px" }}
             />
@@ -227,9 +262,7 @@ const App = () => {
               value={dimensions.y}
               onChange={(e) => {
                 const value = parseInt(e.target.value, 10);
-                if (!isNaN(value)) {
-                  setDimensions((prev) => ({ ...prev, y: value }));
-                }
+                setDimensions((prev) => ({ ...prev, y: value }));
               }}
               style={{ marginLeft: "10px", width: "100px" }}
             />
@@ -240,15 +273,37 @@ const App = () => {
       {/* Conditions Selection */}
       <div style={{ marginBottom: "20px" }}>
         <h3>අවශ්‍ය නීතී තෝරන්න</h3>
-        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
-          <button onClick={() => setSelectedConditions(Array(conditions.length).fill(true))}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            marginBottom: "10px",
+          }}
+        >
+          <button
+            onClick={() =>
+              setSelectedConditions(Array(conditions.length).fill(true))
+            }
+          >
             Select All
           </button>
-          <button onClick={() => setSelectedConditions(Array(conditions.length).fill(false))}>
+          <button
+            onClick={() =>
+              setSelectedConditions(Array(conditions.length).fill(false))
+            }
+          >
             Unselect All
           </button>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", justifyContent: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "15px",
+            justifyContent: "center",
+          }}
+        >
           {conditions.map((condition, index) => (
             <label key={index} style={{ margin: "1px 0" }}>
               <input
@@ -267,7 +322,14 @@ const App = () => {
       </div>
 
       {/* Results Display */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "15px",
+          justifyContent: "center",
+        }}
+      >
         {results.map((res, index) => (
           <div
             key={index}
@@ -280,19 +342,45 @@ const App = () => {
               backgroundColor: "rgba(73, 73, 73, 0.1)",
             }}
           >
-            <p style={{ lineHeight: "1.5" }}><strong>දිග:</strong> {res.x}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>පළල:</strong> {res.y}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>අය:</strong> {res.aya}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>වැය:</strong> {res.weya}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>යෝනි:</strong> {res.yoni}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>නැකත:</strong> {res.nekatha}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>දවස:</strong> {res.dawasa}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>අයුෂ:</strong> {res.ayusha}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>අංශක:</strong> {res.anshaka}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>රාශිය:</strong> {res.rashiya}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>තිථිය:</strong> {res.thithiya}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>වංශය:</strong> {res.wanshaya}</p>
-            <p style={{ lineHeight: "1.5" }}><strong>දෙවතා:</strong> {res.dewatha}</p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>දිග:</strong> {res.x}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>පළල:</strong> {res.y}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>අය:</strong> {res.aya}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>වැය:</strong> {res.weya}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>යෝනි:</strong> {res.yoni}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>නැකත:</strong> {res.nekatha}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>දවස:</strong> {res.dawasa}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>අයුෂ:</strong> {res.ayusha}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>අංශක:</strong> {res.anshaka}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>රාශිය:</strong> {res.rashiya}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>තිථිය:</strong> {res.thithiya}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>වංශය:</strong> {res.wanshaya}
+            </p>
+            <p style={{ lineHeight: "1.5" }}>
+              <strong>දෙවතා:</strong> {res.dewatha}
+            </p>
           </div>
         ))}
       </div>
