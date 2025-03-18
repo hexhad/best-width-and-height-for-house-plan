@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 
 // Helper Functions
 const generateOddNumbers = (start, end) => {
@@ -27,10 +27,33 @@ const computeMods = (multi) => ({
   dewatha: (multi * 5) % 3,
 });
 
+// Function to check exclusion rules
+const isExcluded = (mods) => {
+  const { yoni, nekatha, dawasa, thithiya, rashiya } = mods;
+  return (
+    (yoni === 1 && [13, 3, 20, 10].includes(nekatha)) || // ruleYoniSinha
+    (yoni === 3 && [19, 9, 26, 16].includes(nekatha)) || // ruleYoniDawaja
+    (yoni === 5 && [8, 25, 15, 5].includes(nekatha)) || // ruleYoniGaja
+    (yoni === 7 && [24, 14, 4, 21].includes(nekatha)) || // ruleYoniWushaba
+    (yoni === 1 && dawasa === 2) || // ruleYoniDawasa1
+    (yoni === 3 && dawasa === 7) || // ruleYoniDawasa2
+    (yoni === 5 && dawasa === 5) || // ruleYoniDawasa3
+    (yoni === 7 && dawasa === 4) || // ruleYoniDawasa4
+    (yoni === 1 && [4, 9, 14, 19, 24, 29].includes(thithiya)) || // ruleYoniThthiyaSinha
+    (yoni === 3 && [3, 8, 13, 18, 23, 28].includes(thithiya)) || // ruleYoniThthiyaDawaja
+    (yoni === 5 && [2, 7, 12, 17, 22, 27].includes(thithiya)) || // ruleYoniThthiyaGaja
+    (yoni === 7 && [1, 6, 11, 16, 21, 26].includes(thithiya)) || // ruleYoniThthiyaWushaba
+    (yoni === 1 && [11, 12].includes(rashiya)) || // ruleYoniRashiSinha (corrected from & to &&)
+    (yoni === 3 && [8, 9].includes(rashiya)) || // ruleYoniRashiDawaja
+    (yoni === 5 && [5, 6].includes(rashiya)) || // ruleYoniRashiGaja
+    (yoni === 7 && [2, 3].includes(rashiya)) // ruleYoniRashiWushabaGawa
+  );
+};
+
 // Define conditions with their names
 const conditions = [
   { name: "අය > 6", check: (mods) => mods.aya > 6 },
-  { name: "විය < 5", check: (mods) => mods.weya < 5 },
+  { name: "වැය < 5", check: (mods) => mods.weya < 5 },
   {
     name: "යෝනි ∈ [1,3,5,7]",
     check: (mods) => [1, 3, 5, 7].includes(mods.yoni),
@@ -80,10 +103,11 @@ const App = () => {
       const selectedChecks = conditions
         .filter((_, index) => selectedConditions[index])
         .map((c) => c.check);
-      // If no conditions selected, include all; otherwise, all selected must be true
+      // Include result if no conditions selected or all selected conditions are true, and no exclusion rules are triggered
       if (
-        selectedChecks.length === 0 ||
-        selectedChecks.every((check) => check(mods))
+        (selectedChecks.length === 0 ||
+          selectedChecks.every((check) => check(mods))) &&
+        !isExcluded(mods)
       ) {
         return {
           x: convertInchesToFeetAndInches(x),
@@ -96,6 +120,9 @@ const App = () => {
           ayusha: mods.ayusha,
           anshaka: mods.anshaka,
           rashiya: mods.rashiya,
+          thithiya: mods.thithiya,
+          wanshaya: mods.wanshaya,
+          dewatha: mods.dewatha,
         };
       }
       return null;
@@ -115,13 +142,13 @@ const App = () => {
 
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>Results</h1>
+      <h1>නිවාස සදහා සුදුසු දිග සහ පළල 🏠</h1>
 
       {/* Sliders for adjusting ranges */}
       <div style={{ marginBottom: "20px" }}>
         <h3>Adjust Ranges</h3>
         <div>
-          <label>Start දිග: {startX}</label>
+          <label>Start දිග: {convertInchesToFeetAndInches(startX)}</label>
           <input
             type="range"
             min="200"
@@ -132,7 +159,7 @@ const App = () => {
           />
         </div>
         <div>
-          <label>End දිග: {endX}</label>
+          <label>End දිග: {convertInchesToFeetAndInches(endX)}</label>
           <input
             type="range"
             min="200"
@@ -143,7 +170,7 @@ const App = () => {
           />
         </div>
         <div>
-          <label>Start පළල: {startY}</label>
+          <label>Start පළල: {convertInchesToFeetAndInches(startY)}</label>
           <input
             type="range"
             min="200"
@@ -154,7 +181,7 @@ const App = () => {
           />
         </div>
         <div>
-          <label>End පළල: {endY}</label>
+          <label>End පළල: {convertInchesToFeetAndInches(endY)}</label>
           <input
             type="range"
             min="200"
@@ -225,7 +252,7 @@ const App = () => {
               <strong>අය:</strong> {res.aya}
             </p>
             <p style={{ lineHeight: "5px" }}>
-              <strong>විය:</strong> {res.weya}
+              <strong>වැය:</strong> {res.weya}
             </p>
             <p style={{ lineHeight: "5px" }}>
               <strong>යෝනි:</strong> {res.yoni}
@@ -245,6 +272,15 @@ const App = () => {
             <p style={{ lineHeight: "5px" }}>
               <strong>රාශිය:</strong> {res.rashiya}
             </p>
+            <p style={{ lineHeight: "5px" }}>
+              <strong>තිථිය:</strong> {res.thithiya}
+            </p>
+            <p style={{ lineHeight: "5px" }}>
+              <strong>වංශය:</strong> {res.wanshaya}
+            </p>
+            <p style={{ lineHeight: "5px" }}>
+              <strong>දෙවතා:</strong> {res.dewatha}
+            </p>
           </div>
         ))}
       </div>
@@ -252,4 +288,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default memo(App);
