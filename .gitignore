@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Yarn (node-modules linker: yarn.lock is enough to reproduce installs)
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+.pnp.*
