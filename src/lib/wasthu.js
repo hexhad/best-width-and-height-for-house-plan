@@ -4,68 +4,25 @@
 export const MIN_INCHES = 200;
 export const MAX_INCHES = 600;
 
-const NAKATH = [
-  "අස්විද",
-  "බෙරණ",
-  "කැති",
-  "රෙහෙණ",
-  "මුවසිරස",
-  "අද",
-  "පුනාවස",
-  "පුෂ",
-  "අස්ලිය",
-  "මා",
-  "පුවපල්",
-  "උත්රපල්",
-  "හත",
-  "සිත",
-  "සා",
-  "විසා",
-  "අනුර",
-  "දෙට",
-  "මුල",
-  "පුවසල",
-  "උත්රසල",
-  "සුවණ",
-  "දෙනට",
-  "සියාවස",
-  "පුවපුටුප",
-  "උත්රපුටුප",
-  "රේවතී",
-];
-
-const RASHI = ["මේෂ", "වෘෂභ", "මිථුන", "කටක", "සිංහ", "කන්‍යා", "තුලා", "වෘශ්චික", "ධනු", "මකර", "කුම්භ", "මීන"];
-
-const YONI = [
-  { name: "ධ්වජ", dir: "නැගෙනහිර" },
-  { name: "ධූම", dir: "ගිනිකොන" },
-  { name: "සිංහ", dir: "දකුණ" },
-  { name: "ශ්වාන", dir: "නිරිත" },
-  { name: "වෘෂභ", dir: "බස්නාහිර" },
-  { name: "ඛර", dir: "වයඹ" },
-  { name: "ගජ", dir: "උතුර" },
-  { name: "කාක", dir: "ඊසාන" },
-];
-
-/** The eleven factors, in display order. `name` gives an optional label for a value. */
+/** The eleven factors, in display order. Labels live in i18n.js. */
 export const FACTORS = [
-  { key: "aya", label: "අය", mul: 8, div: 12 },
-  { key: "weya", label: "වැය", mul: 9, div: 10 },
-  { key: "yoni", label: "යෝනි", mul: 3, div: 8, name: (v) => YONI[v - 1] && `${YONI[v - 1].name} (${YONI[v - 1].dir})` },
-  { key: "nekatha", label: "නැකත", mul: 8, div: 27, name: (v) => NAKATH[v - 1] },
-  { key: "dawasa", label: "දවස", mul: 9, div: 7 },
-  { key: "ayusha", label: "අයුෂ", mul: 27, div: 100 },
-  { key: "anshaka", label: "අංශක", mul: 4, div: 9 },
-  { key: "rashiya", label: "රාශිය", mul: 5, div: 12, name: (v) => RASHI[v - 1] },
-  { key: "thithiya", label: "තිථිය", mul: 9, div: 30 },
-  { key: "wanshaya", label: "වංශය", mul: 3, div: 4 },
-  { key: "dewatha", label: "දෙවතා", mul: 5, div: 3 },
+  { key: "aya", mul: 8, div: 12 },
+  { key: "weya", mul: 9, div: 10 },
+  { key: "yoni", mul: 3, div: 8 },
+  { key: "nekatha", mul: 8, div: 27 },
+  { key: "dawasa", mul: 9, div: 7 },
+  { key: "ayusha", mul: 27, div: 100 },
+  { key: "anshaka", mul: 4, div: 9 },
+  { key: "rashiya", mul: 5, div: 12 },
+  { key: "thithiya", mul: 9, div: 30 },
+  { key: "wanshaya", mul: 3, div: 4 },
+  { key: "dewatha", mul: 5, div: 3 },
 ];
 
 /**
  * Computes every factor for an area.
  * With `zeroAsDivisor` (the traditional reading), a remainder of 0 counts as the
- * divisor itself: 0 අය is 12, 0 දවස is 7, 0 තිථිය is 30, and so on.
+ * divisor itself: 0 Aya is 12, 0 Vara is 7, 0 Tithi is 30, and so on.
  */
 export function computeFactors(area, { zeroAsDivisor = true } = {}) {
   const out = {};
@@ -98,55 +55,43 @@ export function yoniClashes(f) {
  * `factor` links a rule to the factor it reads, so the UI can mark it.
  */
 export const RULES = [
-  { id: "aya", factor: "aya", label: "අය 6 ට වැඩි", hint: "7 සිට 12 දක්වා", test: (f) => f.aya > 6 },
-  { id: "weya", factor: "weya", label: "වැය 5 ට අඩු", hint: "1 සිට 4 දක්වා", test: (f) => f.weya < 5 },
-  { id: "ayaWeya", factor: "aya", label: "අය වැයට වඩා වැඩි", hint: "ආදායම වියදමට වඩා", test: (f) => f.aya > f.weya },
+  { id: "aya", factor: "aya", test: (f) => f.aya > 6 },
+  { id: "weya", factor: "weya", test: (f) => f.weya < 5 },
+  { id: "ayaWeya", factor: "aya", test: (f) => f.aya > f.weya },
   {
     id: "yoni",
     factor: "yoni",
-    label: "ශුභ යෝනි",
-    hint: "ධ්වජ, සිංහ, වෘෂභ, ගජ (1, 3, 5, 7)",
     test: (f) => [1, 3, 5, 7].includes(f.yoni),
   },
   {
     id: "yoniMatch",
     factor: "yoni",
-    label: "යෝනි ගැළපීම",
-    hint: "යෝනියට නොගැළපෙන නැකත, දවස, තිථි, රාශි ඉවත් කරයි",
     test: (f) => yoniClashes(f).length === 0,
   },
   {
     id: "nekatha",
     factor: "nekatha",
-    label: "ශුභ නැකත",
-    hint: "2, 5, 7, 9, 11, 14, 16, 18, 20, 23, 25, 27",
     test: (f) => inList([2, 5, 7, 9, 11, 14, 16, 18, 20, 23, 25, 27])(f.nekatha),
   },
-  { id: "dawasa", factor: "dawasa", label: "ශුභ දවස", hint: "2, 3, 6", test: (f) => [2, 3, 6].includes(f.dawasa) },
-  { id: "ayusha", factor: "ayusha", label: "අයුෂ 50 ට වැඩි", hint: "වසර 51 සිට 100 දක්වා", test: (f) => f.ayusha > 50 },
+  { id: "dawasa", factor: "dawasa", test: (f) => [2, 3, 6].includes(f.dawasa) },
+  { id: "ayusha", factor: "ayusha", test: (f) => f.ayusha > 50 },
   {
     id: "anshaka",
     factor: "anshaka",
-    label: "ශුභ අංශක",
-    hint: "1, 3, 5, 6, 8",
     test: (f) => [1, 3, 5, 6, 8].includes(f.anshaka),
   },
   {
     id: "rashiya",
     factor: "rashiya",
-    label: "ශුභ රාශිය",
-    hint: "2, 3, 5, 9, 11",
     test: (f) => [2, 3, 5, 9, 11].includes(f.rashiya),
   },
   {
     id: "thithiya",
     factor: "thithiya",
-    label: "අශුභ තිථි හැර",
-    hint: "5, 10, 15, 20, 25, 30 නොවිය යුතුයි",
     test: (f) => ![5, 10, 15, 20, 25, 30].includes(f.thithiya),
   },
-  { id: "wanshaya", factor: "wanshaya", label: "ශුභ වංශය", hint: "1, 2, 3", test: (f) => [1, 2, 3].includes(f.wanshaya) },
-  { id: "dewatha", factor: "dewatha", label: "ශුභ දෙවතා", hint: "1, 2", test: (f) => [1, 2].includes(f.dewatha) },
+  { id: "wanshaya", factor: "wanshaya", test: (f) => [1, 2, 3].includes(f.wanshaya) },
+  { id: "dewatha", factor: "dewatha", test: (f) => [1, 2].includes(f.dewatha) },
 ];
 
 export const ALL_RULE_IDS = RULES.map((r) => r.id);
@@ -228,10 +173,10 @@ export function nearest(length, width, { active, oddOnly = true, zeroAsDivisor =
 const squareness = (p) => Math.max(p.length, p.width) / Math.min(p.length, p.width);
 
 export const SORTS = {
-  areaAsc: { label: "වර්ගඵලය: කුඩා සිට", fn: (a, b) => a.area - b.area },
-  areaDesc: { label: "වර්ගඵලය: විශාල සිට", fn: (a, b) => b.area - a.area },
-  square: { label: "සමචතුරස්‍රයට ළඟම", fn: (a, b) => squareness(a) - squareness(b) || a.area - b.area },
-  length: { label: "දිග අනුව", fn: (a, b) => a.length - b.length || a.width - b.width },
+  areaAsc: (a, b) => a.area - b.area,
+  areaDesc: (a, b) => b.area - a.area,
+  square: (a, b) => squareness(a) - squareness(b) || a.area - b.area,
+  length: (a, b) => a.length - b.length || a.width - b.width,
 };
 
 // Formatting

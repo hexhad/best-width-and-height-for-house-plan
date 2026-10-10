@@ -2,11 +2,12 @@ import { lazy, Suspense } from "react";
 import { ArrowRight, Check, Minus, X } from "@phosphor-icons/react";
 import { FACTORS, RULES, fmtFtIn, sqft, yoniClashes } from "../lib/wasthu.js";
 import { useReducedMotion } from "../hooks/useMedia.js";
+import { useT } from "../hooks/useLang.js";
+import { Parts } from "./Parts.jsx";
 
 const HouseScene = lazy(() => import("./HouseScene.jsx"));
 
 const RULE_BY_ID = Object.fromEntries(RULES.map((r) => [r.id, r]));
-const FACTOR_LABEL = Object.fromEntries(FACTORS.map((f) => [f.key, f.label]));
 
 function factorStatus(key, verdicts) {
   const linked = verdicts.filter((v) => v.on && RULE_BY_ID[v.id].factor === key);
@@ -15,14 +16,15 @@ function factorStatus(key, verdicts) {
 }
 
 const STATUS_ICON = {
-  pass: <Check size={14} weight="bold" aria-label="සමත්" />,
-  fail: <X size={14} weight="bold" aria-label="අසමත්" />,
-  off: <Minus size={14} aria-label="නීතියක් නැත" />,
+  pass: (t) => <Check size={14} weight="bold" aria-label={t.pass} />,
+  fail: (t) => <X size={14} weight="bold" aria-label={t.fail} />,
+  off: (t) => <Minus size={14} aria-label={t.noRule} />,
 };
 
 /** Every factor of one plan, with its verdict against the active rules, and a 3D preview. */
 export function PlanReport({ plan, theme, suggestions, onPick }) {
   const reduce = useReducedMotion();
+  const t = useT();
   const failed = plan.verdicts.filter((v) => v.on && !v.pass);
   const activeCount = plan.verdicts.filter((v) => v.on).length;
   const clashes = yoniClashes(plan.factors);
@@ -39,14 +41,13 @@ export function PlanReport({ plan, theme, suggestions, onPick }) {
         <header className="report-head">
           <div className={`verdict ${plan.ok ? "ok" : "bad"}`}>
             {plan.ok ? <Check size={16} weight="bold" /> : <X size={16} weight="bold" />}
-            {plan.ok ? "ශුභයි" : "ගැළපෙන්නේ නැත"}
+            {plan.ok ? t.good : t.bad}
           </div>
           <h2 className="num">
             {fmtFtIn(plan.length)} <span className="faint">×</span> {fmtFtIn(plan.width)}
           </h2>
           <p className="muted">
-            වර්ගඵලය <span className="num">{sqft(plan.area)}</span> වර්ග අඩි. නීති {activeCount} න්{" "}
-            <span className="num">{plan.passed}</span> ක් සමත්.
+            <Parts parts={t.summary(sqft(plan.area), activeCount, plan.passed)} />
           </p>
         </header>
 
@@ -55,9 +56,9 @@ export function PlanReport({ plan, theme, suggestions, onPick }) {
             {failed.map((v) => (
               <li key={v.id}>
                 <X size={13} weight="bold" aria-hidden="true" />
-                {RULE_BY_ID[v.id].label}
+                {t.rule[v.id][0]}
                 {v.id === "yoniMatch" && clashes.length > 0 && (
-                  <span className="faint"> ({clashes.map((k) => FACTOR_LABEL[k]).join(", ")})</span>
+                  <span className="faint"> ({clashes.map((k) => t.factors[k]).join(", ")})</span>
                 )}
               </li>
             ))}
@@ -68,18 +69,19 @@ export function PlanReport({ plan, theme, suggestions, onPick }) {
           {FACTORS.map((f) => {
             const v = plan.factors[f.key];
             const status = factorStatus(f.key, plan.verdicts);
+            const name = t.factorName(f.key, v);
             return (
               <div key={f.key} className={`factor ${status}`}>
                 <dt>
-                  {f.label}
-                  <span className="factor-status">{STATUS_ICON[status]}</span>
+                  {t.factors[f.key]}
+                  <span className="factor-status">{STATUS_ICON[status](t)}</span>
                 </dt>
                 <dd>
                   <span className="factor-value num">
                     {v}
                     <span className="faint">/{f.div}</span>
                   </span>
-                  {f.name && <span className="factor-name">{f.name(v)}</span>}
+                  {name && <span className="factor-name">{name}</span>}
                 </dd>
               </div>
             );
@@ -87,10 +89,10 @@ export function PlanReport({ plan, theme, suggestions, onPick }) {
         </dl>
 
         {suggestions && (
-          <section className="suggest" aria-label="ළඟම ශුභ මිනුම්">
-            <h3>ළඟම ශුභ මිනුම්</h3>
+          <section className="suggest" aria-label={t.nearest}>
+            <h3>{t.nearest}</h3>
             {suggestions.length === 0 ? (
-              <p className="muted">අඟල් 24 ක් ඇතුලත ගැළපෙන මිනුමක් නැත. නීති කිහිපයක් ඉවත් කර බලන්න.</p>
+              <p className="muted">{t.nearestNone}</p>
             ) : (
               <div className="suggest-list">
                 {suggestions.map((s) => (
@@ -117,8 +119,9 @@ export function PlanReport({ plan, theme, suggestions, onPick }) {
 
 /** Passing sizes as a selectable grid. */
 export function ResultGrid({ items, selected, onSelect }) {
+  const t = useT();
   return (
-    <ul className="result-grid" role="listbox" aria-label="ශුභ මිනුම්">
+    <ul className="result-grid" role="listbox" aria-label={t.results}>
       {items.map((h, i) => {
         const key = `${h.length}x${h.width}`;
         const isSel = selected === key;
@@ -131,7 +134,7 @@ export function ResultGrid({ items, selected, onSelect }) {
                 {fmtFtIn(h.width)}
               </span>
               <span className="result-meta">
-                <span className="num">{sqft(h.area)}</span> වර්ග අඩි
+                <span className="num">{sqft(h.area)}</span> {t.sqft}
               </span>
             </button>
           </li>

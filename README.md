@@ -1,6 +1,6 @@
 # වාස්තු මිනුම් (Wasthu dimensions)
 
-Find house lengths and widths that satisfy the traditional Sri Lankan Wasthu Vidyawa (Ayadi) rules, or check the dimensions of an existing plan.
+Find house lengths and widths that satisfy the traditional Sri Lankan Wasthu Vidyawa (Ayadi) rules, or check the dimensions of an existing plan. The interface is in Sinhala and English (toggle in the top bar); all strings live in `src/lib/i18n.js`.
 
 ```sh
 yarn          # install

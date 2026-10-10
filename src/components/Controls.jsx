@@ -1,10 +1,12 @@
 import { useId } from "react";
 import { Check } from "@phosphor-icons/react";
 import { fmtFtIn, toFeet } from "../lib/wasthu.js";
+import { useT } from "../hooks/useLang.js";
 
 /** A two-thumb range built from two native range inputs, so keyboard and screen readers just work. */
 export function RangeField({ label, value, onChange, min, max }) {
   const id = useId();
+  const t = useT();
   const [a, b] = value;
   const lo = Math.min(a, b);
   const hi = Math.max(a, b);
@@ -17,7 +19,7 @@ export function RangeField({ label, value, onChange, min, max }) {
           {label}
         </span>
         <span className="range-values num">
-          {fmtFtIn(lo)} <span className="faint">සිට</span> {fmtFtIn(hi)}
+          {fmtFtIn(lo)} <span className="faint">{t.from}</span> {fmtFtIn(hi)}
         </span>
       </div>
       <div className="range-track" style={{ "--lo": `${pct(lo)}%`, "--hi": `${pct(hi)}%` }}>
@@ -27,7 +29,7 @@ export function RangeField({ label, value, onChange, min, max }) {
           max={max}
           value={a}
           aria-labelledby={id}
-          aria-label="අවම"
+          aria-label={t.min}
           aria-valuetext={fmtFtIn(a)}
           onChange={(e) => onChange([Number(e.target.value), b])}
         />
@@ -37,7 +39,7 @@ export function RangeField({ label, value, onChange, min, max }) {
           max={max}
           value={b}
           aria-labelledby={id}
-          aria-label="උපරිම"
+          aria-label={t.max}
           aria-valuetext={fmtFtIn(b)}
           onChange={(e) => onChange([a, Number(e.target.value)])}
         />
@@ -53,6 +55,7 @@ export function RangeField({ label, value, onChange, min, max }) {
 /** Feet + inches entry for one dimension; reports total inches. */
 export function DimensionInput({ label, inches, onChange }) {
   const id = useId();
+  const t = useT();
   const { ft, inch } = toFeet(inches);
   const set = (nextFt, nextIn) => onChange(Math.max(0, nextFt) * 12 + Math.min(11, Math.max(0, nextIn)));
   const parse = (s) => (s === "" ? 0 : Math.floor(Number(s)) || 0);
@@ -72,7 +75,7 @@ export function DimensionInput({ label, inches, onChange }) {
             value={ft}
             onChange={(e) => set(parse(e.target.value), inch)}
           />
-          <span>අඩි</span>
+          <span>{t.feet}</span>
         </label>
         <label className="dim-cell" htmlFor={`${id}-in`}>
           <input
@@ -85,10 +88,10 @@ export function DimensionInput({ label, inches, onChange }) {
             value={inch}
             onChange={(e) => set(ft, parse(e.target.value))}
           />
-          <span>අඟල්</span>
+          <span>{t.inches}</span>
         </label>
       </div>
-      <p className="helper num">= අඟල් {inches}</p>
+      <p className="helper num">{t.inchesTotal(inches)}</p>
     </fieldset>
   );
 }
@@ -125,15 +128,16 @@ export function Segmented({ value, onChange, options, label }) {
 }
 
 /** A rule toggle: label, the values it accepts, and a check when on. */
-export function RuleToggle({ rule, on, onToggle }) {
+export function RuleToggle({ id, on, onToggle }) {
+  const [label, hint] = useT().rule[id];
   return (
     <button type="button" className="rule" aria-pressed={on} onClick={onToggle}>
       <span className="rule-box" aria-hidden="true">
         <Check size={12} weight="bold" />
       </span>
       <span className="rule-text">
-        <span className="rule-label">{rule.label}</span>
-        <span className="rule-hint">{rule.hint}</span>
+        <span className="rule-label">{label}</span>
+        <span className="rule-hint">{hint}</span>
       </span>
     </button>
   );
