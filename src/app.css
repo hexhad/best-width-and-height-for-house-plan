@@ -203,9 +203,12 @@
 }
 
 @media (max-width: 959px) {
+  /* Not a scroller here: an empty scroll container with contained overscroll swallows touch scrolls. */
   .panel {
     position: static;
     max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
   }
 }
 
