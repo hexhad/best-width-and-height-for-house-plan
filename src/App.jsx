@@ -104,14 +104,6 @@ export default function App() {
             <h1>නිවසට ශුභ දිග සහ පළල</h1>
             <p className="lede">ආයාදි නීති 13 අනුව ගැළපෙන මිනුම් සොයන්න, නැතහොත් ඔබේ සැලැස්මේ මිනුම් පරීක්ෂා කරන්න.</p>
           </div>
-          <figure className="intro-figure">
-            <iframe
-              key={theme.resolved}
-              src={`${import.meta.env.BASE_URL}hairline-plot.html?theme=${theme.resolved}&play=1`}
-              title="නිවසේ දිග සහ පළල වෙනස් කරන රේඛා චිත්‍රය"
-              loading="lazy"
-            />
-          </figure>
         </section>
 
         <section className="workspace">
