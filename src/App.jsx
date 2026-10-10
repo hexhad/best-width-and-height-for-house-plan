@@ -3,6 +3,8 @@ import { ArrowsOutSimple, CaretDown, Desktop, MagnifyingGlass, Moon, Ruler, Sun 
 import { ALL_RULE_IDS, MAX_INCHES, MIN_INCHES, RULES, SORTS, evaluate, nearest, scan } from "./lib/wasthu.js";
 import { usePersistentState } from "./hooks/usePersistentState.js";
 import { useTheme } from "./hooks/useTheme.js";
+import { LangContext, useLang } from "./hooks/useLang.js";
+import { Parts } from "./components/Parts.jsx";
 import { Backdrop, LiquidMark } from "./components/Atmosphere.jsx";
 import { DimensionInput, RangeField, RuleToggle, Segmented, Switch } from "./components/Controls.jsx";
 import { PlanReport, ResultGrid } from "./components/Results.jsx";
@@ -10,18 +12,18 @@ import { PlanReport, ResultGrid } from "./components/Results.jsx";
 const PAGE = 48;
 
 const RULE_GROUPS = [
-  { title: "අය සහ වැය", ids: ["aya", "weya", "ayaWeya", "ayusha"] },
-  { title: "යෝනිය", ids: ["yoni", "yoniMatch"] },
-  { title: "නැකත සහ කාලය", ids: ["nekatha", "dawasa", "thithiya", "rashiya"] },
-  { title: "අනෙකුත්", ids: ["anshaka", "wanshaya", "dewatha"] },
+  { key: "money", ids: ["aya", "weya", "ayaWeya", "ayusha"] },
+  { key: "yoni", ids: ["yoni", "yoniMatch"] },
+  { key: "time", ids: ["nekatha", "dawasa", "thithiya", "rashiya"] },
+  { key: "other", ids: ["anshaka", "wanshaya", "dewatha"] },
 ];
 const RULE_BY_ID = Object.fromEntries(RULES.map((r) => [r.id, r]));
 
 const THEME_ICON = { auto: <Desktop size={18} />, light: <Sun size={18} />, dark: <Moon size={18} /> };
-const THEME_LABEL = { auto: "පද්ධතියට අනුව", light: "ආලෝක", dark: "අඳුරු" };
 
 export default function App() {
   const theme = useTheme();
+  const { t, toggle: toggleLang } = useLang();
   const [mode, setMode] = usePersistentState("mode", "search");
   const [lengthRange, setLengthRange] = usePersistentState("lengthRange", [361, 500]);
   const [widthRange, setWidthRange] = usePersistentState("widthRange", [281, 391]);
@@ -55,7 +57,7 @@ export default function App() {
       }),
     [query],
   );
-  const sorted = useMemo(() => [...hits].sort((SORTS[sort] ?? SORTS.areaAsc).fn), [hits, sort]);
+  const sorted = useMemo(() => [...hits].sort(SORTS[sort] ?? SORTS.areaAsc), [hits, sort]);
 
   const selectedHit = sorted.find((h) => `${h.length}x${h.width}` === selected) ?? sorted[0];
   const searchPlan = selectedHit && evaluate(selectedHit.length, selectedHit.width, active, opts);
@@ -78,57 +80,58 @@ export default function App() {
     setShown(PAGE);
   };
 
+  const themeLabel = `${t.theme.label}: ${t.theme[theme.pref]}`;
+
   return (
-    <>
+    <LangContext value={t}>
       <Backdrop theme={theme.resolved} />
 
       <header className="topbar">
         <div className="brand">
           <LiquidMark theme={theme.resolved} />
-          <span className="brand-name">වාස්තු මිනුම්</span>
+          <span className="brand-name">{t.brand}</span>
         </div>
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={theme.cycle}
-          aria-label={`තේමාව: ${THEME_LABEL[theme.pref]}`}
-          title={`තේමාව: ${THEME_LABEL[theme.pref]}`}
-        >
-          {THEME_ICON[theme.pref]}
-        </button>
+        <div className="topbar-actions">
+          <button type="button" className="lang-btn" onClick={toggleLang} lang={t.lang === "si" ? "en" : "si"}>
+            {t.switchTo}
+          </button>
+          <button type="button" className="icon-btn" onClick={theme.cycle} aria-label={themeLabel} title={themeLabel}>
+            {THEME_ICON[theme.pref]}
+          </button>
+        </div>
       </header>
 
       <main className="shell">
         <section className="intro">
           <div className="intro-copy">
-            <h1>නිවසට ශුභ දිග සහ පළල</h1>
-            <p className="lede">ආයාදි නීති 13 අනුව ගැළපෙන මිනුම් සොයන්න, නැතහොත් ඔබේ සැලැස්මේ මිනුම් පරීක්ෂා කරන්න.</p>
+            <h1>{t.heading}</h1>
+            <p className="lede">{t.lede}</p>
           </div>
         </section>
 
         <section className="workspace">
-          <aside className="panel glass" aria-label="සැකසුම්">
+          <aside className="panel glass" aria-label={t.settings}>
             <Segmented
-              label="ක්‍රමය"
+              label={t.mode}
               value={mode}
               onChange={setMode}
               options={[
-                { value: "search", label: "සොයන්න", icon: <MagnifyingGlass size={16} /> },
-                { value: "check", label: "පරීක්ෂා කරන්න", icon: <Ruler size={16} /> },
+                { value: "search", label: t.search, icon: <MagnifyingGlass size={16} /> },
+                { value: "check", label: t.check, icon: <Ruler size={16} /> },
               ]}
             />
 
             {mode === "search" ? (
               <div className="panel-section">
                 <RangeField
-                  label="දිග"
+                  label={t.length}
                   value={lengthRange}
                   onChange={resetPage(setLengthRange)}
                   min={MIN_INCHES}
                   max={MAX_INCHES}
                 />
                 <RangeField
-                  label="පළල"
+                  label={t.width}
                   value={widthRange}
                   onChange={resetPage(setWidthRange)}
                   min={MIN_INCHES}
@@ -137,14 +140,18 @@ export default function App() {
               </div>
             ) : (
               <div className="panel-section dims">
-                <DimensionInput label="දිග" inches={manual.length} onChange={(length) => setManual((m) => ({ ...m, length }))} />
-                <DimensionInput label="පළල" inches={manual.width} onChange={(width) => setManual((m) => ({ ...m, width }))} />
+                <DimensionInput
+                  label={t.length}
+                  inches={manual.length}
+                  onChange={(length) => setManual((m) => ({ ...m, length }))}
+                />
+                <DimensionInput label={t.width} inches={manual.width} onChange={(width) => setManual((m) => ({ ...m, width }))} />
               </div>
             )}
 
             <details className="panel-section rules" open={rulesOpen} onToggle={(e) => setRulesOpen(e.currentTarget.open)}>
               <summary>
-                <h2>නීති</h2>
+                <h2>{t.rules}</h2>
                 <span className="num faint">
                   {active.size}/{RULES.length}
                 </span>
@@ -157,35 +164,30 @@ export default function App() {
                   onClick={() => resetPage(setRuleIds)(ALL_RULE_IDS)}
                   disabled={active.size === RULES.length}
                 >
-                  සියල්ල තෝරන්න
+                  {t.selectAll}
                 </button>
                 <button type="button" className="link" onClick={() => resetPage(setRuleIds)([])} disabled={active.size === 0}>
-                  සියල්ල ඉවත් කරන්න
+                  {t.clearAll}
                 </button>
               </div>
               {RULE_GROUPS.map((g) => (
-                <div key={g.title} className="rule-group">
-                  <h3>{g.title}</h3>
+                <div key={g.key} className="rule-group">
+                  <h3>{t.groups[g.key]}</h3>
                   {g.ids.map((id) => (
-                    <RuleToggle key={id} rule={RULE_BY_ID[id]} on={active.has(id)} onToggle={() => resetPage(toggleRule)(id)} />
+                    <RuleToggle key={id} id={id} on={active.has(id)} onToggle={() => resetPage(toggleRule)(id)} />
                   ))}
                 </div>
               ))}
             </details>
 
             <div className="panel-section">
-              <h2>ගණනය කිරීම</h2>
-              <Switch
-                checked={oddOnly}
-                onChange={resetPage(setOddOnly)}
-                label="ඔත්තේ අඟල් පමණක්"
-                hint="සම්ප්‍රදායට අනුව දිග සහ පළල ඔත්තේ අඟල් වේ"
-              />
+              <h2>{t.calculation}</h2>
+              <Switch checked={oddOnly} onChange={resetPage(setOddOnly)} label={t.oddOnly} hint={t.oddOnlyHint} />
               <Switch
                 checked={zeroAsDivisor}
                 onChange={resetPage(setZeroAsDivisor)}
-                label="ශේෂය 0 නම් බෙදුම්කාරය ගන්න"
-                hint="උදා: අය 0 නම් 12 ලෙස, දවස 0 නම් 7 ලෙස"
+                label={t.zeroAsDivisor}
+                hint={t.zeroAsDivisorHint}
               />
             </div>
           </aside>
@@ -195,16 +197,15 @@ export default function App() {
               <>
                 <div className="toolbar">
                   <p className="count">
-                    <span className="num">{checked.toLocaleString()}</span> න් ගැළපෙන{" "}
-                    <strong className="num">{hits.length.toLocaleString()}</strong>
+                    <Parts parts={t.count(checked.toLocaleString(), hits.length.toLocaleString())} />
                   </p>
                   {hits.length > 1 && (
                     <label className="sort">
-                      <span className="visually-hidden">පිළිවෙල</span>
+                      <span className="visually-hidden">{t.sortBy}</span>
                       <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                        {Object.entries(SORTS).map(([k, s]) => (
+                        {Object.keys(SORTS).map((k) => (
                           <option key={k} value={k}>
-                            {s.label}
+                            {t.sorts[k]}
                           </option>
                         ))}
                       </select>
@@ -222,14 +223,14 @@ export default function App() {
                     />
                     {shown < sorted.length && (
                       <button type="button" className="more" onClick={() => setShown((n) => n + PAGE * 2)}>
-                        තවත් පෙන්වන්න <span className="num faint">({(sorted.length - shown).toLocaleString()})</span>
+                        {t.showMore} <span className="num faint">({(sorted.length - shown).toLocaleString()})</span>
                       </button>
                     )}
                   </>
                 ) : (
                   <div className="empty glass">
-                    <h2>මෙම පරාසයේ ගැළපෙන මිනුමක් නැත</h2>
-                    <p className="muted">පරාසය පුළුල් කරන්න, නැතහොත් නීති කිහිපයක් ඉවත් කරන්න.</p>
+                    <h2>{t.noneTitle}</h2>
+                    <p className="muted">{t.noneBody}</p>
                     <button
                       type="button"
                       className="btn"
@@ -239,7 +240,7 @@ export default function App() {
                       }}
                     >
                       <ArrowsOutSimple size={16} />
-                      උපරිම පරාසය
+                      {t.maxRange}
                     </button>
                   </div>
                 )}
@@ -253,8 +254,8 @@ export default function App() {
               />
             ) : (
               <div className="empty glass">
-                <h2>දිග සහ පළල ඇතුලත් කරන්න</h2>
-                <p className="muted">අඩි සහ අඟල් වලින් ඇතුලත් කළ විට ප්‍රතිඵලය මෙහි පෙන්වයි.</p>
+                <h2>{t.enterTitle}</h2>
+                <p className="muted">{t.enterBody}</p>
               </div>
             )}
           </div>
@@ -262,8 +263,8 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <p>ගණනය කිරීම් සම්ප්‍රදායික ආයාදි ක්‍රමයට අනුවයි. ඉදිකිරීමට පෙර වාස්තු ශිල්පියෙකුගෙන් තහවුරු කරගන්න.</p>
+        <p>{t.footer}</p>
       </footer>
-    </>
+    </LangContext>
   );
 }

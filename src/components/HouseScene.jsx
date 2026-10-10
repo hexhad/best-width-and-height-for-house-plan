@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { fmtFtIn } from "../lib/wasthu.js";
+import { useT } from "../hooks/useLang.js";
 
 // Scene units are feet. Wall height and eave overhang follow a typical single-storey Sri Lankan house.
 const WALL_H = 10;
@@ -152,6 +153,7 @@ function FitCamera({ length, width }) {
  */
 export default function HouseScene({ length, width, theme, reduce }) {
   const colors = PALETTE[theme];
+  const t = useT();
   const longRef = useRef(null);
   const shortRef = useRef(null);
   const longIsLength = length >= width;
@@ -201,10 +203,10 @@ export default function HouseScene({ length, width, theme, reduce }) {
         />
       </Canvas>
       <span ref={longRef} className={`scene-label ${colors.label}`}>
-        {longIsLength ? "දිග" : "පළල"} {fmtFtIn(Math.max(length, width))}
+        {longIsLength ? t.length : t.width} {fmtFtIn(Math.max(length, width))}
       </span>
       <span ref={shortRef} className={`scene-label ${colors.label}`}>
-        {longIsLength ? "පළල" : "දිග"} {fmtFtIn(Math.min(length, width))}
+        {longIsLength ? t.width : t.length} {fmtFtIn(Math.min(length, width))}
       </span>
     </>
   );
