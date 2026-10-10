@@ -4,7 +4,7 @@
  * Z scale: backdrop -1, topbar 10.
  */
 :root {
-  --font-sans: "Geist Variable", "Noto Sans Sinhala Variable", system-ui, sans-serif;
+  --font-text: "Abhaya Libre", "Iskoola Pota", serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
   --bg: #eceff1;
@@ -89,9 +89,9 @@ body {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.55;
+  font-family: var(--font-text);
+  font-size: 17px;
+  line-height: 1.5;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

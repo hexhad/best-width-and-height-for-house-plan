@@ -36,4 +36,3 @@ Two settings can be switched in the UI:
 
 - 3D preview of the selected plan: three.js via `@react-three/fiber` and `drei`, lazy loaded.
 - Page background and logo: `@paper-design/shaders-react` (MeshGradient, LiquidMetal).
-- Hero line figure: a [Hairline](https://github.com/lucasmarkes/hairline) figure, source in `figures/plot.js`, built to `public/hairline-plot.html`.
