@@ -1,391 +1,277 @@
-import React, { useState, useEffect, memo } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
+import { ArrowsOutSimple, CaretDown, Desktop, MagnifyingGlass, Moon, Ruler, Sun } from "@phosphor-icons/react";
+import { ALL_RULE_IDS, MAX_INCHES, MIN_INCHES, RULES, SORTS, evaluate, nearest, scan } from "./lib/wasthu.js";
+import { usePersistentState } from "./hooks/usePersistentState.js";
+import { useTheme } from "./hooks/useTheme.js";
+import { Backdrop, LiquidMark } from "./components/Atmosphere.jsx";
+import { DimensionInput, RangeField, RuleToggle, Segmented, Switch } from "./components/Controls.jsx";
+import { PlanReport, ResultGrid } from "./components/Results.jsx";
 
-// Helper Functions
-const generateOddNumbers = (start, end) => {
-  const odds = [];
-  const firstOdd = start % 2 === 0 ? start + 1 : start;
-  for (let i = firstOdd; i <= end; i += 2) {
-    odds.push(i);
-  }
-  return odds;
-};
+const PAGE = 48;
 
-const convertInchesToFeetAndInches = (inches) =>
-  `${Math.floor(inches / 12)} ft ${inches % 12} in`;
-
-const computeMods = (multi) => ({
-  aya: (multi * 8) % 12,
-  weya: (multi * 9) % 10,
-  yoni: (multi * 3) % 8,
-  nekatha: (multi * 8) % 27,
-  dawasa: (multi * 9) % 7,
-  ayusha: (multi * 27) % 100,
-  anshaka: (multi * 4) % 9,
-  rashiya: (multi * 5) % 12,
-  thithiya: (multi * 9) % 30,
-  wanshaya: (multi * 3) % 4,
-  dewatha: (multi * 5) % 3,
-});
-
-const isExcluded = (mods) => {
-  const { yoni, nekatha, dawasa, thithiya, rashiya } = mods;
-  return (
-    (yoni === 1 && [13, 3, 20, 10].includes(nekatha)) ||
-    (yoni === 3 && [19, 9, 26, 16].includes(nekatha)) ||
-    (yoni === 5 && [8, 25, 15, 5].includes(nekatha)) ||
-    (yoni === 7 && [24, 14, 4, 21].includes(nekatha)) ||
-    (yoni === 1 && dawasa === 2) ||
-    (yoni === 3 && dawasa === 7) ||
-    (yoni === 5 && dawasa === 5) ||
-    (yoni === 7 && dawasa === 4) ||
-    (yoni === 1 && [4, 9, 14, 19, 24, 29].includes(thithiya)) ||
-    (yoni === 3 && [3, 8, 13, 18, 23, 28].includes(thithiya)) ||
-    (yoni === 5 && [2, 7, 12, 17, 22, 27].includes(thithiya)) ||
-    (yoni === 7 && [1, 6, 11, 16, 21, 26].includes(thithiya)) ||
-    (yoni === 1 && [11, 12].includes(rashiya)) ||
-    (yoni === 3 && [8, 9].includes(rashiya)) ||
-    (yoni === 5 && [5, 6].includes(rashiya)) ||
-    (yoni === 7 && [2, 3].includes(rashiya))
-  );
-};
-
-// Conditions Array
-const conditions = [
-  { name: "අය > 6", check: (mods) => mods.aya > 6 },
-  { name: "වැය < 5", check: (mods) => mods.weya < 5 },
-  {
-    name: "යෝනි ඇතුලත්ව [1,3,5,7]",
-    check: (mods) => [1, 3, 5, 7].includes(mods.yoni),
-  },
-  {
-    name: "නැකත ඇතුලත්ව [2,5,7,9,11,14,16,18,20,23,25,27]",
-    check: (mods) =>
-      [2, 5, 7, 9, 11, 14, 16, 18, 20, 23, 25, 27].includes(mods.nekatha),
-  },
-  {
-    name: "දවස ඇතුලත්ව [2,3,6]",
-    check: (mods) => [2, 3, 6].includes(mods.dawasa),
-  },
-  { name: "අයුෂ > 50", check: (mods) => mods.ayusha > 50 },
-  {
-    name: "අංශක ඇතුලත්ව [1,3,5,6,8]",
-    check: (mods) => [1, 3, 5, 6, 8].includes(mods.anshaka),
-  },
-  {
-    name: "රාශිය ඇතුලත්ව [2,3,5,9,11]",
-    check: (mods) => [2, 3, 5, 9, 11].includes(mods.rashiya),
-  },
-  {
-    name: "තිථිය හැර [5,10,15,20,25,30]",
-    check: (mods) => ![5, 10, 15, 20, 25, 30].includes(mods.thithiya),
-  },
-  {
-    name: "වංශය ඇතුලත්ව [1,2,3]",
-    check: (mods) => [1, 2, 3].includes(mods.wanshaya),
-  },
-  {
-    name: "දෙවතා ඇතුලත්ව [1,2]",
-    check: (mods) => [1, 2].includes(mods.dewatha),
-  },
+const RULE_GROUPS = [
+  { title: "අය සහ වැය", ids: ["aya", "weya", "ayaWeya", "ayusha"] },
+  { title: "යෝනිය", ids: ["yoni", "yoniMatch"] },
+  { title: "නැකත සහ කාලය", ids: ["nekatha", "dawasa", "thithiya", "rashiya"] },
+  { title: "අනෙකුත්", ids: ["anshaka", "wanshaya", "dewatha"] },
 ];
+const RULE_BY_ID = Object.fromEntries(RULES.map((r) => [r.id, r]));
 
-const App = () => {
-  // State Declarations
-  const [results, setResults] = useState([]);
-  const [startX, setStartX] = useState(361);
-  const [endX, setEndX] = useState(500);
-  const [startY, setStartY] = useState(281);
-  const [endY, setEndY] = useState(391);
-  const [selectedConditions, setSelectedConditions] = useState(
-    new Array(conditions.length).fill(true)
+const THEME_ICON = { auto: <Desktop size={18} />, light: <Sun size={18} />, dark: <Moon size={18} /> };
+const THEME_LABEL = { auto: "පද්ධතියට අනුව", light: "ආලෝක", dark: "අඳුරු" };
+
+export default function App() {
+  const theme = useTheme();
+  const [mode, setMode] = usePersistentState("mode", "search");
+  const [lengthRange, setLengthRange] = usePersistentState("lengthRange", [361, 500]);
+  const [widthRange, setWidthRange] = usePersistentState("widthRange", [281, 391]);
+  const [manual, setManual] = usePersistentState("manual", { length: 371, width: 301 });
+  const [ruleIds, setRuleIds] = usePersistentState("rules", ALL_RULE_IDS);
+  const [oddOnly, setOddOnly] = usePersistentState("oddOnly", true);
+  const [zeroAsDivisor, setZeroAsDivisor] = usePersistentState("zeroAsDivisor", true);
+  const [sort, setSort] = usePersistentState("sort", "areaAsc");
+  const [shown, setShown] = useState(PAGE);
+  const [selected, setSelected] = useState(null);
+  // Rules start open where there is room beside the results, folded on phones.
+  const [rulesOpen, setRulesOpen] = useState(() => matchMedia("(min-width: 960px)").matches);
+
+  const active = useMemo(() => new Set(ruleIds.filter((id) => RULE_BY_ID[id])), [ruleIds]);
+  const opts = { zeroAsDivisor };
+
+  // Scanning follows the sliders a frame behind, so dragging stays smooth on large ranges.
+  const liveQuery = useMemo(
+    () => ({ lengthRange, widthRange, active, oddOnly, zeroAsDivisor }),
+    [lengthRange, widthRange, active, oddOnly, zeroAsDivisor],
   );
-  const [method, setMethod] = useState(0); // 0: Auto, 1: Manual
-  const [dimensions, setDimensions] = useState({ x: 0, y: 0 }); // x: length, y: width
+  const query = useDeferredValue(liveQuery);
+  const { hits, checked } = useMemo(
+    () =>
+      scan({
+        length: query.lengthRange,
+        width: query.widthRange,
+        active: query.active,
+        oddOnly: query.oddOnly,
+        zeroAsDivisor: query.zeroAsDivisor,
+      }),
+    [query],
+  );
+  const sorted = useMemo(() => [...hits].sort((SORTS[sort] ?? SORTS.areaAsc).fn), [hits, sort]);
 
-  // Compute Results
-  useEffect(() => {
-    const mul = (x, y) => {
-      const multi = x * y;
-      const mods = computeMods(multi);
-      const selectedChecks = conditions
-        .filter((_, index) => selectedConditions[index])
-        .map((c) => c.check);
-      if (
-        (selectedChecks.length === 0 ||
-          selectedChecks.every((check) => check(mods))) &&
-        !isExcluded(mods)
-      ) {
-        return {
-          x: convertInchesToFeetAndInches(x), // length
-          y: convertInchesToFeetAndInches(y), // width
-          aya: mods.aya,
-          weya: mods.weya,
-          yoni: mods.yoni,
-          nekatha: mods.nekatha,
-          dawasa: mods.dawasa,
-          ayusha: mods.ayusha,
-          anshaka: mods.anshaka,
-          rashiya: mods.rashiya,
-          thithiya: mods.thithiya,
-          wanshaya: mods.wanshaya,
-          dewatha: mods.dewatha,
-        };
-      }
-      return null;
-    };
+  const selectedHit = sorted.find((h) => `${h.length}x${h.width}` === selected) ?? sorted[0];
+  const searchPlan = selectedHit && evaluate(selectedHit.length, selectedHit.width, active, opts);
 
-    if (method === 0) {
-      // Auto Mode
-      const tempResults = [];
-      const xOdds = generateOddNumbers(startX, endX);
-      const yOdds = generateOddNumbers(startY, endY);
-      xOdds.forEach((x) => {
-        yOdds.forEach((y) => {
-          const result = mul(x, y);
-          if (result) tempResults.push(result);
-        });
-      });
-      setResults(tempResults);
-    } else {
-      // Manual Mode
-      if (dimensions.x > 0 && dimensions.y > 0) {
-        const result = mul(dimensions.x, dimensions.y);
-        setResults(result ? [result] : []);
-      } else {
-        setResults([]);
-      }
-    }
-  }, [startX, endX, startY, endY, selectedConditions, method, dimensions]);
+  const manualValid = manual.length >= 12 && manual.width >= 12;
+  const manualPlan = manualValid ? evaluate(manual.length, manual.width, active, opts) : null;
+  const manualFails = manualPlan ? !manualPlan.ok : false;
+  const suggestions = useMemo(
+    () => (manualFails ? nearest(manual.length, manual.width, { active, oddOnly, zeroAsDivisor }) : null),
+    [manualFails, manual.length, manual.width, active, oddOnly, zeroAsDivisor],
+  );
+
+  const toggleRule = (id) =>
+    setRuleIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : ALL_RULE_IDS.filter((x) => x === id || ids.includes(x)),
+    );
+
+  const resetPage = (fn) => (v) => {
+    fn(v);
+    setShown(PAGE);
+  };
 
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>නිවාස සදහා සුදුසු දිග සහ පළල 🏠</h1>
+    <>
+      <Backdrop theme={theme.resolved} />
 
-      {/* Mode Selection */}
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <label>
-          <input
-            type="radio"
-            name="method"
-            value="Auto"
-            checked={method === 0}
-            onChange={() => setMethod(0)}
-          />
-          ස්වයංක්‍රීය
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="method"
-            value="Manual"
-            checked={method === 1}
-            onChange={() => setMethod(1)}
-          />
-          දත්ත ඇතුලත් කරන්න
-        </label>
-      </div>
-
-      {/* Input Section */}
-      {method === 0 ? (
-        <div style={{ marginBottom: "20px" }}>
-          <h3>පළල සහ දිග පරාස</h3>
-          <div>
-            <label>Start දිග: {convertInchesToFeetAndInches(startX)}</label>
-            <input
-              type="range"
-              min="200"
-              max="600"
-              value={startX}
-              onChange={(e) => setStartX(Number(e.target.value))}
-              style={{ width: "300px", margin: "10px" }}
-            />
-          </div>
-          <div>
-            <label>End දිග: {convertInchesToFeetAndInches(endX)}</label>
-            <input
-              type="range"
-              min="200"
-              max="600"
-              value={endX}
-              onChange={(e) => setEndX(Number(e.target.value))}
-              style={{ width: "300px", margin: "10px" }}
-            />
-          </div>
-          <div>
-            <label>Start පළල: {convertInchesToFeetAndInches(startY)}</label>
-            <input
-              type="range"
-              min="200"
-              max="600"
-              value={startY}
-              onChange={(e) => setStartY(Number(e.target.value))}
-              style={{ width: "300px", margin: "10px" }}
-            />
-          </div>
-          <div>
-            <label>End පළල: {convertInchesToFeetAndInches(endY)}</label>
-            <input
-              type="range"
-              min="200"
-              max="600"
-              value={endY}
-              onChange={(e) => setEndY(Number(e.target.value))}
-              style={{ width: "300px", margin: "10px" }}
-            />
-          </div>
+      <header className="topbar">
+        <div className="brand">
+          <LiquidMark theme={theme.resolved} />
+          <span className="brand-name">වාස්තු මිනුම්</span>
         </div>
-      ) : (
-        <div style={{ marginBottom: "20px" }}>
-          <div style={{ marginBottom: "10px" }}>
-            <label>දිග (අඟල්):</label>
-            <input
-              type="number"
-              value={dimensions.x}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                setDimensions((prev) => ({ ...prev, x: value }));
-              }}
-              style={{ marginLeft: "10px", width: "100px" }}
-            />
-          </div>
-          <div>
-            <label>පළල (අඟල්):</label>
-            <input
-              type="number"
-              value={dimensions.y}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                setDimensions((prev) => ({ ...prev, y: value }));
-              }}
-              style={{ marginLeft: "10px", width: "100px" }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Conditions Selection */}
-      <div style={{ marginBottom: "20px" }}>
-        <h3>අවශ්‍ය නීතී තෝරන්න</h3>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "10px",
-            marginBottom: "10px",
-          }}
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={theme.cycle}
+          aria-label={`තේමාව: ${THEME_LABEL[theme.pref]}`}
+          title={`තේමාව: ${THEME_LABEL[theme.pref]}`}
         >
-          <button
-            onClick={() =>
-              setSelectedConditions(Array(conditions.length).fill(true))
-            }
-          >
-            සියලු නීති බලන්න
-          </button>
-          <button
-            onClick={() =>
-              setSelectedConditions(Array(conditions.length).fill(false))
-            }
-          >
-            නීති සියල්ල ඉවත්කරන්න
-          </button>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "15px",
-            justifyContent: "center",
-          }}
-        >
-          {conditions.map((condition, index) => (
-            <label key={index} style={{ margin: "1px 0" }}>
-              <input
-                type="checkbox"
-                checked={selectedConditions[index]}
-                onChange={() => {
-                  const newSelected = [...selectedConditions];
-                  newSelected[index] = !newSelected[index];
-                  setSelectedConditions(newSelected);
-                }}
+          {THEME_ICON[theme.pref]}
+        </button>
+      </header>
+
+      <main className="shell">
+        <section className="intro">
+          <div className="intro-copy">
+            <h1>නිවසට ශුභ දිග සහ පළල</h1>
+            <p className="lede">ආයාදි නීති 13 අනුව ගැළපෙන මිනුම් සොයන්න, නැතහොත් ඔබේ සැලැස්මේ මිනුම් පරීක්ෂා කරන්න.</p>
+          </div>
+          <figure className="intro-figure">
+            <iframe
+              key={theme.resolved}
+              src={`${import.meta.env.BASE_URL}hairline-plot.html?theme=${theme.resolved}&play=1`}
+              title="නිවසේ දිග සහ පළල වෙනස් කරන රේඛා චිත්‍රය"
+              loading="lazy"
+            />
+          </figure>
+        </section>
+
+        <section className="workspace">
+          <aside className="panel glass" aria-label="සැකසුම්">
+            <Segmented
+              label="ක්‍රමය"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "search", label: "සොයන්න", icon: <MagnifyingGlass size={16} /> },
+                { value: "check", label: "පරීක්ෂා කරන්න", icon: <Ruler size={16} /> },
+              ]}
+            />
+
+            {mode === "search" ? (
+              <div className="panel-section">
+                <RangeField
+                  label="දිග"
+                  value={lengthRange}
+                  onChange={resetPage(setLengthRange)}
+                  min={MIN_INCHES}
+                  max={MAX_INCHES}
+                />
+                <RangeField
+                  label="පළල"
+                  value={widthRange}
+                  onChange={resetPage(setWidthRange)}
+                  min={MIN_INCHES}
+                  max={MAX_INCHES}
+                />
+              </div>
+            ) : (
+              <div className="panel-section dims">
+                <DimensionInput label="දිග" inches={manual.length} onChange={(length) => setManual((m) => ({ ...m, length }))} />
+                <DimensionInput label="පළල" inches={manual.width} onChange={(width) => setManual((m) => ({ ...m, width }))} />
+              </div>
+            )}
+
+            <details className="panel-section rules" open={rulesOpen} onToggle={(e) => setRulesOpen(e.currentTarget.open)}>
+              <summary>
+                <h2>නීති</h2>
+                <span className="num faint">
+                  {active.size}/{RULES.length}
+                </span>
+                <CaretDown size={14} className="caret" aria-hidden="true" />
+              </summary>
+              <div className="link-row">
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => resetPage(setRuleIds)(ALL_RULE_IDS)}
+                  disabled={active.size === RULES.length}
+                >
+                  සියල්ල තෝරන්න
+                </button>
+                <button type="button" className="link" onClick={() => resetPage(setRuleIds)([])} disabled={active.size === 0}>
+                  සියල්ල ඉවත් කරන්න
+                </button>
+              </div>
+              {RULE_GROUPS.map((g) => (
+                <div key={g.title} className="rule-group">
+                  <h3>{g.title}</h3>
+                  {g.ids.map((id) => (
+                    <RuleToggle key={id} rule={RULE_BY_ID[id]} on={active.has(id)} onToggle={() => resetPage(toggleRule)(id)} />
+                  ))}
+                </div>
+              ))}
+            </details>
+
+            <div className="panel-section">
+              <h2>ගණනය කිරීම</h2>
+              <Switch
+                checked={oddOnly}
+                onChange={resetPage(setOddOnly)}
+                label="ඔත්තේ අඟල් පමණක්"
+                hint="සම්ප්‍රදායට අනුව දිග සහ පළල ඔත්තේ අඟල් වේ"
               />
-              {condition.name}
-            </label>
-          ))}
-        </div>
-      </div>
+              <Switch
+                checked={zeroAsDivisor}
+                onChange={resetPage(setZeroAsDivisor)}
+                label="ශේෂය 0 නම් බෙදුම්කාරය ගන්න"
+                hint="උදා: අය 0 නම් 12 ලෙස, දවස 0 නම් 7 ලෙස"
+              />
+            </div>
+          </aside>
 
-      {/* Results Display */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "15px",
-          justifyContent: "center",
-        }}
-      >
-        {results.map((res, index) => (
-          <div
-            key={index}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-              padding: "15px",
-              width: "200px",
-              boxShadow: "2px 2px 10px rgba(0, 0, 0, 0.1)",
-              backgroundColor: "rgba(73, 73, 73, 0.1)",
-            }}
-          >
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>දිග:</strong> {res.x}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>පළල:</strong> {res.y}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>අය:</strong> {res.aya}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>වැය:</strong> {res.weya}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>යෝනි:</strong> {res.yoni}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>නැකත:</strong> {res.nekatha}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>දවස:</strong> {res.dawasa}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>අයුෂ:</strong> {res.ayusha}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>අංශක:</strong> {res.anshaka}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>රාශිය:</strong> {res.rashiya}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>තිථිය:</strong> {res.thithiya}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>වංශය:</strong> {res.wanshaya}
-            </p>
-            <p style={{ lineHeight: "1.5" }}>
-              <strong>දෙවතා:</strong> {res.dewatha}
-            </p>
+          <div className="results">
+            {mode === "search" ? (
+              <>
+                <div className="toolbar">
+                  <p className="count">
+                    <span className="num">{checked.toLocaleString()}</span> න් ගැළපෙන{" "}
+                    <strong className="num">{hits.length.toLocaleString()}</strong>
+                  </p>
+                  {hits.length > 1 && (
+                    <label className="sort">
+                      <span className="visually-hidden">පිළිවෙල</span>
+                      <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                        {Object.entries(SORTS).map(([k, s]) => (
+                          <option key={k} value={k}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+
+                {searchPlan ? (
+                  <>
+                    <PlanReport plan={searchPlan} theme={theme.resolved} />
+                    <ResultGrid
+                      items={sorted.slice(0, shown)}
+                      selected={`${searchPlan.length}x${searchPlan.width}`}
+                      onSelect={setSelected}
+                    />
+                    {shown < sorted.length && (
+                      <button type="button" className="more" onClick={() => setShown((n) => n + PAGE * 2)}>
+                        තවත් පෙන්වන්න <span className="num faint">({(sorted.length - shown).toLocaleString()})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="empty glass">
+                    <h2>මෙම පරාසයේ ගැළපෙන මිනුමක් නැත</h2>
+                    <p className="muted">පරාසය පුළුල් කරන්න, නැතහොත් නීති කිහිපයක් ඉවත් කරන්න.</p>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        setLengthRange([MIN_INCHES, MAX_INCHES]);
+                        setWidthRange([MIN_INCHES, MAX_INCHES]);
+                      }}
+                    >
+                      <ArrowsOutSimple size={16} />
+                      උපරිම පරාසය
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : manualPlan ? (
+              <PlanReport
+                plan={manualPlan}
+                theme={theme.resolved}
+                suggestions={suggestions}
+                onPick={(s) => setManual({ length: s.length, width: s.width })}
+              />
+            ) : (
+              <div className="empty glass">
+                <h2>දිග සහ පළල ඇතුලත් කරන්න</h2>
+                <p className="muted">අඩි සහ අඟල් වලින් ඇතුලත් කළ විට ප්‍රතිඵලය මෙහි පෙන්වයි.</p>
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+        </section>
+      </main>
 
-export default memo(App);
+      <footer className="footer">
+        <p>ගණනය කිරීම් සම්ප්‍රදායික ආයාදි ක්‍රමයට අනුවයි. ඉදිකිරීමට පෙර වාස්තු ශිල්පියෙකුගෙන් තහවුරු කරගන්න.</p>
+      </footer>
+    </>
+  );
+}
