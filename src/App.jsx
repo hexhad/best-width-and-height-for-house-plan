@@ -8,6 +8,7 @@ import { Parts } from "./components/Parts.jsx";
 import { Backdrop, LiquidMark } from "./components/Atmosphere.jsx";
 import { DimensionInput, RangeField, RuleToggle, Segmented, Switch } from "./components/Controls.jsx";
 import { PlanReport, ResultGrid } from "./components/Results.jsx";
+import { MadeByHexhad } from "./components/Hexhad.jsx";
 
 const PAGE = 48;
 
@@ -264,6 +265,10 @@ export default function App() {
 
       <footer className="footer">
         <p>{t.footer}</p>
+        <div className="footer-studio">
+          <MadeByHexhad />
+          <span>© {new Date().getFullYear()} HEXHAD</span>
+        </div>
       </footer>
     </LangContext>
   );

@@ -152,6 +152,7 @@ const si = {
   nearestNone: "අඟල් 24 ක් ඇතුලත ගැළපෙන මිනුමක් නැත. නීති කිහිපයක් ඉවත් කර බලන්න.",
   results: "ශුභ මිනුම්",
   footer: "ගණනය කිරීම් සම්ප්‍රදායික ආයාදි ක්‍රමයට අනුවයි. ඉදිකිරීමට පෙර වාස්තු ශිල්පියෙකුගෙන් තහවුරු කරගන්න.",
+  madeBy: "නිර්මාණය",
   factors: {
     aya: "අය",
     weya: "වැය",
@@ -231,6 +232,7 @@ const en = {
   nearestNone: "No passing size within 24 inches. Try turning off some rules.",
   results: "Auspicious sizes",
   footer: "Calculations follow the traditional Ayadi method. Confirm with a Wasthu practitioner before you build.",
+  madeBy: "by",
   factors: {
     aya: "Aya",
     weya: "Vyaya",

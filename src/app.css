@@ -1075,6 +1075,37 @@
   color: var(--faint);
 }
 
+.footer-studio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.hexhad {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s var(--ease-out);
+}
+
+.hexhad:hover {
+  color: var(--ink);
+}
+
+/* Wordmark: bold, uppercase, 0.14em tracking. */
+.hexhad-word {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
 @media (max-width: 767px) {
   .footer {
     padding-left: 16px;
