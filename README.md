@@ -36,3 +36,11 @@ Two settings can be switched in the UI:
 
 - 3D preview of the selected plan: three.js via `@react-three/fiber` and `drei`, lazy loaded.
 - Page background and logo: `@paper-design/shaders-react` (MeshGradient, LiquidMetal).
+
+---
+
+<p align="center">
+  <a href="https://hexhad.github.io"><img src=".github/hexhad.svg" width="40" height="40" alt="HEXHAD"></a>
+  <br>
+  <sub>Built by <a href="https://hexhad.github.io"><b>HEXHAD</b></a> · Made in Sri Lanka</sub>
+</p>
